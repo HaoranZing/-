@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学涯慧图 - 成绩分析系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+</head>
+<body class="light-mode">
+    <div class="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </div>
+    
+    <div class="container">
+        <header class="header animate__animated animate__fadeInDown">
+            <h1>学涯慧图</h1>
+            <p class="subtitle">可视化数据分析 · 直观明了 · 高效便捷</p>
+            
+            <!-- 功能导航 -->
+            <div class="main-nav">
+                <button class="nav-btn active" data-panel="main">主页面</button>
+                <button class="nav-btn" data-panel="class-mgmt">班级管理</button>
+                <button class="nav-btn" data-panel="predictions">成绩预测</button>
+                <button class="nav-btn" data-panel="settings">系统设置</button>
+            </div>
+        </header>
+
+        <!-- 主页面面板 -->
+        <div class="panel active" id="main-panel">
+            <div class="card-container">
+                <!-- 成绩输入卡片 -->
+                <div class="card animate__animated animate__fadeInLeft">
+                    <div class="card-header">
+                        <h2>成绩输入</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="grade-form">
+                            <div class="input-group">
+                                <label for="class-select">班级</label>
+                                <select id="class-select">
+                                    <option value="默认班级">默认班级</option>
+                                    <!-- 其他班级选项会通过JavaScript动态添加 -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="student-name">学生姓名</label>
+                                <input type="text" id="student-name" placeholder="请输入学生姓名" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="subject">科目</label>
+                                <select id="subject">
+                                    <option value="语文">语文</option>
+                                    <option value="数学">数学</option>
+                                    <option value="英语">英语</option>
+                                    <option value="物理">物理</option>
+                                    <option value="化学">化学</option>
+                                    <option value="生物">生物</option>
+                                    <option value="历史">历史</option>
+                                    <option value="地理">地理</option>
+                                    <option value="政治">政治</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="score">分数</label>
+                                <input type="number" id="score" min="0" max="150" placeholder="请输入分数" required>
+                                <small class="score-tip">语文、数学、英语最高分为150分，其他科目最高分为100分</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">添加</button>
+                            <button type="button" class="btn btn-secondary" id="demo-data">生成演示数据</button>
+                        </form>
+                        
+                        <!-- 数据导入导出功能 -->
+                        <div class="data-actions">
+                            <button id="export-data" class="btn btn-outline"><i class="fas fa-download"></i> 导出数据</button>
+                            <label for="import-data" class="btn btn-outline"><i class="fas fa-upload"></i> 导入数据</label>
+                            <input type="file" id="import-data" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 成绩列表卡片 -->
+                <div class="card animate__animated animate__fadeInRight">
+                    <div class="card-header">
+                        <h2>成绩列表</h2>
+                        <div class="filter-container">
+                            <input type="text" id="search-input" placeholder="搜索..." class="search-box">
+                            <select id="filter-select">
+                                <option value="all">所有科目</option>
+                                <option value="语文">语文</option>
+                                <option value="数学">数学</option>
+                                <option value="英语">英语</option>
+                                <option value="物理">物理</option>
+                                <option value="化学">化学</option>
+                                <option value="生物">生物</option>
+                                <option value="历史">历史</option>
+                                <option value="地理">地理</option>
+                                <option value="政治">政治</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>班级</th>
+                                        <th>学生姓名</th>
+                                        <th>科目</th>
+                                        <th>分数</th>
+                                        <th>日期</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="grades-list">
+                                    <!-- 成绩数据将在这里动态生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分析统计卡片 -->
+            <div class="analysis-container">
+                <div class="card wide-card animate__animated animate__fadeInUp">
+                    <div class="card-header">
+                        <h2>成绩统计</h2>
+                        <div class="view-selector">
+                            <button class="btn-view active" data-view="subject">按科目统计</button>
+                            <button class="btn-view" data-view="student">按学生统计</button>
+                            <button class="btn-view" data-view="class">按班级统计</button>
+                            <select id="chart-type">
+                                <option value="bar">柱状图</option>
+                                <option value="radar">雷达图</option>
+                                <option value="polarArea">极区图</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="grades-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细分析卡片 -->
+            <div class="analysis-container">
+                <div class="card-container">
+                    <div class="card animate__animated animate__fadeInLeft">
+                        <div class="card-header">
+                            <h2>成绩分布</h2>
+                            <select id="distribution-type">
+                                <option value="pie">饼图</option>
+                                <option value="doughnut">环形图</option>
+                            </select>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="distribution-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card animate__animated animate__fadeInRight">
+                        <div class="card-header">
+                            <h2>成绩趋势</h2>
+                            <select id="trend-subject">
+                                <option value="all">全部科目</option>
+                                <option value="语文">语文</option>
+                                <option value="数学">数学</option>
+                                <option value="英语">英语</option>
+                                <option value="物理">物理</option>
+                                <option value="化学">化学</option>
+                                <option value="生物">生物</option>
+                                <option value="历史">历史</option>
+                                <option value="地理">地理</option>
+                                <option value="政治">政治</option>
+                            </select>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="trend-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 高级分析 -->
+            <div class="analysis-container">
+                <div class="card wide-card animate__animated animate__fadeInUp">
+                    <div class="card-header">
+                        <h2>高级分析</h2>
+                        <select id="advanced-chart-type">
+                            <option value="bubble">气泡图分析</option>
+                            <option value="scatter">散点相关性</option>
+                            <option value="heatmap">成绩热力图</option>
+                        </select>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="advanced-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 班级管理面板 -->
+        <div class="panel" id="class-mgmt-panel">
+            <div class="card wide-card">
+                <div class="card-header">
+                    <h2>班级管理</h2>
+                </div>
+                <div class="card-body">
+                    <div class="class-mgmt-container">
+                        <div class="class-form">
+                            <h3>创建新班级</h3>
+                            <div class="input-group">
+                                <label for="new-class-name">班级名称</label>
+                                <input type="text" id="new-class-name" placeholder="请输入班级名称">
+                            </div>
+                            <div class="input-group">
+                                <label for="class-description">班级描述</label>
+                                <textarea id="class-description" placeholder="请输入班级描述"></textarea>
+                            </div>
+                            <button id="add-class" class="btn btn-primary">创建班级</button>
+                        </div>
+                        
+                        <div class="class-list-container">
+                            <h3>班级列表</h3>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>班级名称</th>
+                                            <th>学生数量</th>
+                                            <th>创建日期</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="class-list">
+                                        <!-- 班级列表将在这里动态生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 班级对比 -->
+                    <div class="class-comparison">
+                        <h3>班级成绩对比</h3>
+                        <div class="comparison-controls">
+                            <div class="select-group">
+                                <label>选择要对比的班级：</label>
+                                <div id="class-checkboxes">
+                                    <!-- 班级复选框将在这里动态生成 -->
+                                </div>
+                            </div>
+                            <div class="select-group">
+                                <label for="comparison-subject">科目：</label>
+                                <select id="comparison-subject">
+                                    <option value="all">所有科目</option>
+                                    <option value="语文">语文</option>
+                                    <option value="数学">数学</option>
+                                    <option value="英语">英语</option>
+                                    <option value="物理">物理</option>
+                                </select>
+                            </div>
+                            <button id="compare-btn" class="btn btn-primary">对比</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="comparison-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 成绩预测面板 -->
+        <div class="panel" id="predictions-panel">
+            <div class="card wide-card">
+                <div class="card-header">
+                    <h2>成绩预测与学习建议</h2>
+                </div>
+                <div class="card-body">
+                    <div class="prediction-container">
+                        <div class="prediction-form">
+                            <h3>预测设置</h3>
+                            <div class="input-group">
+                                <label for="predict-student">选择学生</label>
+                                <select id="predict-student">
+                                    <!-- 学生列表将在这里动态生成 -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="predict-subject">选择科目</label>
+                                <select id="predict-subject">
+                                    <option value="all">所有科目</option>
+                                    <option value="语文">语文</option>
+                                    <option value="数学">数学</option>
+                                    <option value="英语">英语</option>
+                                    <option value="物理">物理</option>
+                                    <option value="化学">化学</option>
+                                </select>
+                            </div>
+                            <button id="predict-btn" class="btn btn-primary">生成预测</button>
+                        </div>
+                        
+                        <div class="prediction-results">
+                            <h3>预测结果</h3>
+                            <div class="chart-container">
+                                <canvas id="prediction-chart"></canvas>
+                            </div>
+                            <div class="prediction-text">
+                                <h4>学习建议</h4>
+                                <div id="learning-suggestions">
+                                    <!-- 学习建议将在这里动态生成 -->
+                                    <p class="empty-state">请选择学生和科目进行预测</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 系统设置面板 -->
+        <div class="panel" id="settings-panel">
+            <div class="card wide-card">
+                <div class="card-header">
+                    <h2>系统设置</h2>
+                </div>
+                <div class="card-body">
+                    <div class="settings-container">
+                        <div class="setting-group">
+                            <h3>界面设置</h3>
+                            <div class="setting-item">
+                                <span>主题模式</span>
+                                <div class="theme-switcher">
+                                    <button class="theme-btn active" data-theme="light">浅色</button>
+                                    <button class="theme-btn" data-theme="dark">深色</button>
+                                    <button class="theme-btn" data-theme="auto">跟随系统</button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <span>色彩方案</span>
+                                <div class="color-scheme-selector">
+                                    <button class="color-btn active" data-scheme="default"></button>
+                                    <button class="color-btn" data-scheme="ocean"></button>
+                                    <button class="color-btn" data-scheme="forest"></button>
+                                    <button class="color-btn" data-scheme="sunset"></button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <span>动画效果</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="animation-toggle" checked>
+                                    <label for="animation-toggle"></label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <h3>数据设置</h3>
+                            <div class="setting-item">
+                                <span>自动保存</span>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="autosave-toggle" checked>
+                                    <label for="autosave-toggle"></label>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <span>备份频率</span>
+                                <select id="backup-frequency">
+                                    <option value="never">从不</option>
+                                    <option value="daily">每天</option>
+                                    <option value="weekly" selected>每周</option>
+                                    <option value="monthly">每月</option>
+                                </select>
+                            </div>
+                            <div class="setting-item danger-zone">
+                                <span>清除所有数据</span>
+                                <button id="clear-data" class="btn btn-danger">清除数据</button>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <h3>移动应用设置</h3>
+                            <div class="setting-item">
+                                <span>扫描二维码下载APP</span>
+                                <div class="qrcode-container">
+                                    <img src="https://via.placeholder.com/150" alt="App下载二维码" id="app-qrcode">
+                                </div>
+                            </div>
+                            <div class="app-links">
+                                <a href="#" class="app-download-btn"><i class="fab fa-android"></i> Android版</a>
+                                <a href="#" class="app-download-btn"><i class="fab fa-apple"></i> iOS版</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer animate__animated animate__fadeInUp">
+        <p>学涯慧图 &copy; 2025 HaoranZing</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
